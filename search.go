@@ -199,6 +199,25 @@ func (qr QueryResponse) ToCompanyInfo() ([]CompanyInfo, error) {
 	return companyInfos, nil
 }
 
+// ToVendor converts a search QueryRespose to Vendor array type
+func (qr QueryResponse) ToVendor() ([]Vendor, error) {
+	queryResponse := qr["QueryResponse"]
+	document := queryResponse.(map[string]interface{})
+
+	b, err := json.Marshal(document["Vendor"])
+	if err != nil {
+		return nil, err
+	}
+
+	vendors := []Vendor{}
+	err = json.Unmarshal(b, &vendors)
+	if err != nil {
+		return nil, err
+	}
+
+	return vendors, nil
+}
+
 // ToCreditMemo converts a search QueryRespose to CreditMemo array type
 func (qr QueryResponse) ToCreditMemo() ([]CreditMemo, error) {
 	queryResponse := qr["QueryResponse"]
@@ -216,4 +235,23 @@ func (qr QueryResponse) ToCreditMemo() ([]CreditMemo, error) {
 	}
 
 	return invoices, nil
+}
+
+// ToJournalEntry converts a search QueryRespose to Invoice array type
+func (qr QueryResponse) ToJournalEntry() ([]JournalEntry, error) {
+	queryResponse := qr["QueryResponse"]
+	document := queryResponse.(map[string]interface{})
+
+	b, err := json.Marshal(document["JournalEntry"])
+	if err != nil {
+		return nil, err
+	}
+
+	journalEntries := []JournalEntry{}
+	err = json.Unmarshal(b, &journalEntries)
+	if err != nil {
+		return nil, err
+	}
+
+	return journalEntries, nil
 }
