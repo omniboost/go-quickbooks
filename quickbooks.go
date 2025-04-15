@@ -3,6 +3,7 @@ package quickbooks
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -181,5 +182,5 @@ func handleError(response *http.Response) error {
 		return sdkError.New(consts.QBAuthorizationFault, consts.QBAuthenticationFaultCode, consts.QBAuthorizationFaultMessage)
 	}
 
-	return nil
+	return fmt.Errorf("unexpected response code: %s", response.Status)
 }
