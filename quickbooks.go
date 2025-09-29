@@ -9,7 +9,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/omniboost/go-quickbooks/sdk"
@@ -28,7 +27,7 @@ type Quickbooks struct {
 	// Debugging flag
 	debug bool
 
-	wg sync.WaitGroup
+	last429 time.Time
 }
 
 // NewClient creates a new client to work with Quickbooks
@@ -79,8 +78,8 @@ func (q *Quickbooks) makeGetRequest(endpoint string) (*http.Response, error) {
 		log.Println(string(dump))
 	}
 
-	// wait until we can make a request within the API call limits
-	q.wg.Wait()
+	// if we got a 429, wait 60 seconds
+	q.sleepWhen429Occured()
 
 	response, err := q.http.Do(request)
 	if q.debug == true {
@@ -92,14 +91,7 @@ func (q *Quickbooks) makeGetRequest(endpoint string) (*http.Response, error) {
 	}
 
 	if response.StatusCode == 429 {
-		// we got a 429, wait 60 seconds as per documentation: https://developer.intuit.com/app/developer/qbo/docs/learn/rest-api-features#limits-and-throttles
-		q.wg.Add(1)
-		defer func() {
-			time.Sleep(60 * time.Second)
-
-			// unlock the waitgroup again
-			q.wg.Done()
-		}()
+		q.register429(response)
 	}
 
 	if response.StatusCode != 200 {
@@ -179,6 +171,23 @@ func (q *Quickbooks) SetMinorVersion(minorVersion int) {
 
 func (q *Quickbooks) MinorVersion() int {
 	return q.minorVersion
+}
+
+func (q *Quickbooks) register429(resp *http.Response) {
+	now := time.Now()
+	if q.last429.IsZero() || q.last429.Before(now) {
+		q.last429 = now
+	}
+}
+
+func (q *Quickbooks) sleepWhen429Occured() {
+	if !q.last429.IsZero() {
+		// we got a 429, wait 60 seconds as per documentation: https://developer.intuit.com/app/developer/qbo/docs/learn/rest-api-features#limits-and-throttles
+		time.Sleep(time.Until(q.last429.Add(60 * time.Second)))
+
+		// reset last429
+		q.last429 = time.Time{}
+	}
 }
 
 func handleError(response *http.Response) error {
