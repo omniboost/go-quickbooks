@@ -9,6 +9,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/omniboost/go-quickbooks/sdk"
 	"github.com/omniboost/go-quickbooks/sdk/consts"
@@ -25,6 +27,8 @@ type Quickbooks struct {
 	http *http.Client
 	// Debugging flag
 	debug bool
+
+	wg sync.WaitGroup
 }
 
 // NewClient creates a new client to work with Quickbooks
@@ -75,6 +79,9 @@ func (q *Quickbooks) makeGetRequest(endpoint string) (*http.Response, error) {
 		log.Println(string(dump))
 	}
 
+	// wait until we can make a request within the API call limits
+	q.wg.Wait()
+
 	response, err := q.http.Do(request)
 	if q.debug == true {
 		dump, _ := httputil.DumpResponse(response, true)
@@ -82,6 +89,17 @@ func (q *Quickbooks) makeGetRequest(endpoint string) (*http.Response, error) {
 	}
 	if err != nil {
 		return nil, err
+	}
+
+	if response.StatusCode == 429 {
+		// we got a 429, wait 60 seconds as per documentation: https://developer.intuit.com/app/developer/qbo/docs/learn/rest-api-features#limits-and-throttles
+		q.wg.Add(1)
+		defer func() {
+			time.Sleep(60 * time.Second)
+
+			// unlock the waitgroup again
+			q.wg.Done()
+		}()
 	}
 
 	if response.StatusCode != 200 {
