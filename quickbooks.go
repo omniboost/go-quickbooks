@@ -152,13 +152,27 @@ func (q *Quickbooks) makePostRequest(endpoint string, body interface{}) (*http.R
 		log.Println(string(dump))
 	}
 
+	// if we got a 429, wait 60 seconds
+	q.sleepWhen429Occured()
+
+	// if we come up to the request limit, throttle the requests by sleeping
+	q.sleepUntilRequestLimit()
+
 	response, err := q.http.Do(request)
 	if q.debug == true && response != nil {
 		dump, _ := httputil.DumpResponse(response, true)
 		log.Println(string(dump))
 	}
+
+	// register timestamp after request has a response
+	q.RegisterRequestTimestamp(time.Now())
+
 	if err != nil {
 		return nil, err
+	}
+
+	if response.StatusCode == 429 {
+		q.register429(response)
 	}
 
 	if response.StatusCode != 200 {
