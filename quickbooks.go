@@ -15,6 +15,10 @@ import (
 	"github.com/omniboost/go-quickbooks/sdk/consts"
 )
 
+var (
+	requestTimestamps = make(map[string]*[]time.Time)
+)
+
 // Quickbooks client type
 type Quickbooks struct {
 	RealmID      string
@@ -81,11 +85,18 @@ func (q *Quickbooks) makeGetRequest(endpoint string) (*http.Response, error) {
 	// if we got a 429, wait 60 seconds
 	q.sleepWhen429Occured()
 
+	// if we come up to the request limit, throttle the requests by sleeping
+	q.sleepUntilRequestLimit()
+
 	response, err := q.http.Do(request)
 	if q.debug == true {
 		dump, _ := httputil.DumpResponse(response, true)
 		log.Println(string(dump))
 	}
+
+	// register timestamp after request has a response
+	q.RegisterRequestTimestamp(time.Now())
+
 	if err != nil {
 		return nil, err
 	}
@@ -188,6 +199,43 @@ func (q *Quickbooks) sleepWhen429Occured() {
 		// reset last429
 		q.last429 = time.Time{}
 	}
+}
+
+func (q *Quickbooks) RegisterRequestTimestamp(t time.Time) {
+	if len(*requestTimestamps[q.RealmID]) >= 60 {
+		ts := (*requestTimestamps[q.RealmID])[1:60]
+		requestTimestamps[q.RealmID] = &ts
+	}
+	ts := append(*requestTimestamps[q.RealmID], t)
+	requestTimestamps[q.RealmID] = &ts
+}
+
+func (q *Quickbooks) sleepUntilRequestLimit() {
+	// Requestrate is 10r/1m
+	var duration = 10 * time.Second
+	limit := 10
+
+	// check if the map exists
+	if requestTimestamps[q.RealmID] == nil {
+		requestTimestamps[q.RealmID] = &[]time.Time{}
+	}
+
+	// if there are less then 10 registered requests: execute the request
+	// immediately
+	if len(*requestTimestamps[q.RealmID]) < limit {
+		return
+	}
+
+	// is the first item within 10 seconds? If it's > 10 seconds the request can be
+	// executed imediately
+	diff := time.Since((*requestTimestamps[q.RealmID])[0])
+	if diff >= (10 * time.Second) {
+		return
+	}
+
+	// Sleep for the time it takes for the first item to be > 10 seconds old
+	// + 1ms to be sure :)
+	time.Sleep((duration) - diff + (1 * time.Millisecond))
 }
 
 func handleError(response *http.Response) error {
