@@ -237,6 +237,25 @@ func (qr QueryResponse) ToCreditMemo() ([]CreditMemo, error) {
 	return invoices, nil
 }
 
+// ToTaxRate converts a search QueryRespose to TaxRate array type
+func (qr QueryResponse) ToTaxRate() ([]TaxRate, error) {
+	queryResponse := qr["QueryResponse"]
+	document := queryResponse.(map[string]interface{})
+
+	b, err := json.Marshal(document["TaxRate"])
+	if err != nil {
+		return nil, err
+	}
+
+	taxRates := []TaxRate{}
+	err = json.Unmarshal(b, &taxRates)
+	if err != nil {
+		return nil, err
+	}
+
+	return taxRates, nil
+}
+
 // ToJournalEntry converts a search QueryRespose to Invoice array type
 func (qr QueryResponse) ToJournalEntry() ([]JournalEntry, error) {
 	queryResponse := qr["QueryResponse"]
