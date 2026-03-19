@@ -28,6 +28,7 @@ type Account struct {
 	Sparse                        bool         `json:"sparse,omitempty"`
 	ID                            string       `json:"Id,omitempty"`
 	SyncToken                     string       `json:"SyncToken,omitempty"`
+	TaxCodeRef                    *TaxCodeRef  `json:"TaxCodeRef,omitempty"`
 	MetaData                      *struct {
 		CreateTime      string `json:"CreateTime,omitempty"`
 		LastUpdatedTime string `json:"LastUpdatedTime,omitempty"`
