@@ -43,6 +43,7 @@ type JournalEntryLineDetail struct {
 	TaxApplicableOn *string         `json:"TaxApplicableOn,omitempty"`
 	TaxAmount       *float64        `json:"TaxAmount,omitempty"`
 	ClassRef        *ClassRef       `json:"ClassRef,omitempty"`
+	DepartmentRef   *DepartmentRef  `json:"DepartmentRef,omitempty"`
 	Entity          *Entity         `json:"Entity,omitempty"`
 	JournalCodeRef  JournalCodeRef  `json:"JournalCodeRef,omitempty"`
 }
@@ -64,6 +65,11 @@ type JournalEntryRef struct {
 }
 
 type ClassRef struct {
+	Value string `json:"value,omitempty"`
+	Name  string `json:"name,omitempty"`
+}
+
+type DepartmentRef struct {
 	Value string `json:"value,omitempty"`
 	Name  string `json:"name,omitempty"`
 }

@@ -161,6 +161,25 @@ func (qr QueryResponse) ToClass() ([]Class, error) {
 	return classes, nil
 }
 
+// ToDepartment converts a search QueryRespose to Department array type
+func (qr QueryResponse) ToDepartment() ([]Department, error) {
+	queryResponse := qr["QueryResponse"]
+	document := queryResponse.(map[string]interface{})
+
+	b, err := json.Marshal(document["Department"])
+	if err != nil {
+		return nil, err
+	}
+
+	departments := []Department{}
+	err = json.Unmarshal(b, &departments)
+	if err != nil {
+		return nil, err
+	}
+
+	return departments, nil
+}
+
 // ToJournalCode converts a search QueryRespose to JournalCode array type
 func (qr QueryResponse) ToJournalCode() ([]JournalCode, error) {
 	queryResponse := qr["QueryResponse"]
